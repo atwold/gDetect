@@ -24,5 +24,11 @@ dependencies = [
   "matplotlib>=3.5"
 ]
 
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [project.urls]
 Homepage = "https://github.com/atwold/gDetect.git"
