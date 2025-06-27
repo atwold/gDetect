@@ -1,6 +1,6 @@
 # █▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀█
 # █ ██████ graphutilities ██████                                                                                        █
-# █ Purpose : offers convenient (and often reused) functions that construct graphs/trees and computes their attributes  █
+# █ Purpose : offers convenient (and often reused) functions that construct graphs/trees and computes their attributes. █
 # █           more specifically, this module:                                                                           █
 # █              - constructs KMSTs (K-Minimum Spanning Tree)                                                           █
 # █              - constructs KNNGs (K-Nearest Neighbors Graph)                                                         █
@@ -33,7 +33,7 @@ MST_FILE = os.path.join(os.path.dirname(__file__), "MST.so")
 
 # ▛▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▜
 # ▌ █ KMST, KNNG, AND GRAPH ATTRIBUTES █                                                                                ▐
-# ▌ Purpose :                                                                                                           ▐
+# ▌ Purpose : defines functions for creating different graph structures and calculating some of their key attributes    ▐
 # ▙▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▟
 # ╔═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
 # ║ ANYIN() METADATA                                                                                                    ║
@@ -42,8 +42,8 @@ MST_FILE = os.path.join(os.path.dirname(__file__), "MST.so")
 # ║ Purpose     : determines if any elements in a given set are present in another given set                            ║
 # ║ Arguments   :                                                                                                       ║
 # ║    - set1 (set) : the first set. all elements of this set have their membership checked for the second set. usually ║
-# ║                   a predetermined set of possible values denoting the allowable scan statisti                       ║
-# ║    - set2 (set) : the second set. Are any of the elements in set1 in set2? Usually the user-specified set of scan   ║
+# ║                   a predetermined set of possible values denoting the allowable scan statistics                     ║
+# ║    - set2 (set) : the second set. Are any of the elements of set1 in set2? Usually the user-specified set of scan   ║
 # ║                   statistics                                                                                        ║
 # ║ Returns     : a boolean value                                                                                       ║
 # ║                  - True if any of the elements in set1 are in set2                                                  ║
