@@ -763,8 +763,8 @@ def gchangeinterval(E, statistic={"all"}, l0=None, l1=None, pval_asym=True, skew
     l0 = np.int64(np.ceil(l0))
     l1 = np.int64(np.floor(l1))
 
-    edgelist = edgematrix_to_edgelist(E)
-    ebynode = edgematrix_to_edgebynode(E)
+    edgelist = gu.edgematrix_to_edgelist(E)
+    ebynode = gu.edgematrix_to_edgebynode(E)
     r1 = {}
 
     # compute scan statistics
