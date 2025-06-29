@@ -6,9 +6,6 @@
 # █           every other function is not meant to be called by the user, rather, they are subfunctions that support    █
 # █           the functionality of gchangepoint and gchangeinterval                                                     █
 # █▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄█
-
-
-
 # ▛▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▜
 # ▌ █ IMPORTS, MODULES, AND PACKAGES █                                                                                  ▐
 # ▌ Purpose : imports the necessary modules and packages                                                                ▐
@@ -1225,7 +1222,6 @@ def pval2_sub2(N, b, r, x, l0, l1):
         
     return result
 
-
 # ╔═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
 # ║ FUNCTION() METADATA                                                                                                 ║
 # ╠═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
@@ -1282,3 +1278,670 @@ def permpval2(N, ebynode, scanZ, statistic, l0, l1, B):
         output["generalized"] = {"pval" : ((maxZs >= scanZ["generalized"]["Zmax"]).sum())/B, "curve" : np.stack((maxZs, p), axis=1), "maxZs" : maxZs, "Zmax" : Z_gen}
 
     return output
+
+
+
+# ▛▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▜
+# ▌ █ PRINTING AND PLOTTING █                                                                                           ▐
+# ▌ Purpose : prints and plots the results of gchangepoint or gchangeinterval for quick and easy reading and            ▐
+# ▌           visualization                                                                                             ▐
+# ▙▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▟
+# ╔═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+# ║ FORMATFLOAT() METADATA                                                                                              ║
+# ╠═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
+# ║ Function    : formatfloat                                                                                           ║
+# ║ Purpose     : formats a given float value to the specified number of decimals places as an f-string                 ║
+# ║                  - if given value is None, return f"NONE"                                                           ║
+# ║ Arguments   :                                                                                                       ║
+# ║    - fval (float or NoneType) :                                                                                     ║
+# ║    - decimal_places (integer) :                                                                                     ║
+# ║ Returns     : an f-string of the formatted, passed in float value                                                   ║
+# ║ Author      : translated from the gSeg R package by Alex Wold                                                       ║
+# ╚═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+def formatfloat(fval, decimal_places=4):
+    return f"{fval:.{decimal_places}f}" if fval is not None else f"NONE"
+
+# ╔═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+# ║ CO_PRINT() METADATA                                                                                                 ║
+# ╠═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
+# ║ Function    : co_print                                                                                              ║
+# ║ Purpose     : summarizes and prints the results of gchangepoint or gchangeinterval in a succinct and readable       ║
+# ║               format                                                                                                ║
+# ║ Arguments   :                                                                                                       ║
+# ║    - results (boolean)        : a dictionary containing the results of gchangepoint or gchangeinterval              ║
+# ║    - printEsts (boolean)      : print the estimated changepoints/changeintervals (tauhat)? True if yes, False if no ║
+# ║    - printScans (boolean)     : print the scan statistics? True if yes, False if no                                 ║
+# ║    - printAsyms (boolean)     : print the asymptotic p-values? True if yes, False if no                             ║
+# ║    - printPerms (boolean)     : print the permutation p-values? True if yes, False if no                            ║
+# ║    - decimal_places (integer) : the number of decimal places to print the scan statistics and p-values              ║
+# ║ Returns     : nothing, this function is just for printing to the console                                            ║
+# ║ Author      : written by Alex Wold                                                                                  ║
+# ╚═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+def co_print(results, printEsts=True, printScans=True, printAsyms=True, printPerms=True, decimal_places=4):
+    # print estimated change-points/change-intervals and max scan statistics
+    if "scanZ" in results:
+        # print information about the original test results
+        if "original" in results["scanZ"]:
+            # check if results is a change-point or change-interval
+            # if tauhat is not in the dictonary return with message
+            point_or_interval = "neither"
+            if "tauhat" in results["scanZ"]["original"]:
+               point_or_interval = "interval" if (np.asarray(results["scanZ"]["original"]["tauhat"]).size)>1 else "point" 
+            else:
+                print(f"NO ESTIMATED CHANGEPOINT FOR ORIGINAL TEST")
+                return
+
+            print(f"\n\nORIGINAL TEST RESULTS")
+            print(f"---------------------")
+            # print estimated change-points/change-intervals if requested
+            if ("tauhat" in results["scanZ"]["original"]) and (printEsts==True) and (point_or_interval=="point"):
+                print(f"Estimated change-{point_or_interval} index (i): {results['scanZ']['original']['tauhat']}")
+                print(f"Estimated change-{point_or_interval} time (t): {results['scanZ']['original']['tauhat']+1}")
+            elif ("tauhat" in results["scanZ"]["original"]) and (printEsts==True) and (point_or_interval=="interval"):
+                print(f"Estimated change-{point_or_interval} indices (i, j): {results['scanZ']['original']['tauhat']}")
+                print(f"Estimated change-{point_or_interval} times (t1, t2): {results['scanZ']['original']['tauhat']+1}")
+
+            # print the maximum scan statistic for the original test
+            if ("Zmax" in results["scanZ"]["original"]) and (printScans==True):
+                print(f"Maximum original scan statistic: {formatfloat(results['scanZ']['original']['Zmax'], decimal_places)}")
+
+            # print asymptotic p-value for the original test
+            if ("pval_asym" in results) and (printAsyms==True):
+                if ("no_skew" in results["pval_asym"]):
+                    if "original" in results["pval_asym"]["no_skew"]:
+                        print(f"Original asymptotic p-value, no skew correction: {formatfloat(results['pval_asym']['no_skew']['original'], decimal_places)}")
+                        
+                if ("skew" in results["pval_asym"]):
+                    if "original" in results["pval_asym"]["skew"]:
+                        print(f"Original asymptotic p-value, with skew correction: {formatfloat(results['pval_asym']['skew']['original'], decimal_places)}")
+
+            # print permutation p-values for the original test
+            if ("pval_perm" in results) and (printPerms==True):
+                if "original" in results["pval_perm"]:
+                    print(f"Original permutation p-value: {formatfloat(results['pval_perm']['original']['pval'], decimal_places)}")
+                
+                
+        # print information about the weighted test results
+        if "weighted" in results["scanZ"]:
+            # check if results is a change-point or change-interval
+            # if tauhat is not in the dictonary return with message
+            point_or_interval = "neither"
+            if "tauhat" in results["scanZ"]["weighted"]:
+               point_or_interval = "interval" if (np.asarray(results["scanZ"]["weighted"]["tauhat"]).size)>1 else "point" 
+            else:
+                print(f"\n\nNO ESTIMATED CHANGEPOINT FOR WEIGHTED TEST")
+                return
+
+            print(f"\n\nWEIGHTED TEST RESULTS")
+            print(f"---------------------")
+            # print estimated change-points/change-intervals if requested
+            if ("tauhat" in results["scanZ"]["weighted"]) and (printEsts==True) and (point_or_interval=="point"):
+                print(f"Estimated change-{point_or_interval} index (i): {results['scanZ']['weighted']['tauhat']}")
+                print(f"Estimated change-{point_or_interval} time (t): {results['scanZ']['weighted']['tauhat']+1}")
+            elif ("tauhat" in results["scanZ"]["weighted"]) and (printEsts==True) and (point_or_interval=="interval"):
+                print(f"Estimated change-{point_or_interval} indices (i, j): {results['scanZ']['weighted']['tauhat']}")
+                print(f"Estimated change-{point_or_interval} times (t1, t2): {results['scanZ']['weighted']['tauhat']+1}")
+
+            # print the maximum scan statistic for the weighted test
+            if ("Zmax" in results["scanZ"]["weighted"]) and (printScans==True):
+                print(f"Maximum weighted scan statistic: {formatfloat(results['scanZ']['weighted']['Zmax'], decimal_places)}")
+
+            # print asymptotic p-value for the weighted test
+            if ("pval_asym" in results) and (printAsyms==True):
+                if ("no_skew" in results["pval_asym"]):
+                    if "weighted" in results["pval_asym"]["no_skew"]:
+                        print(f"Weighted asymptotic p-value, no skew correction: {formatfloat(results['pval_asym']['no_skew']['weighted'], decimal_places)}")
+                        
+                if ("skew" in results["pval_asym"]):
+                    if "weighted" in results["pval_asym"]["skew"]:
+                        print(f"Weighted asymptotic p-value, with skew correction: {formatfloat(results['pval_asym']['skew']['weighted'], decimal_places)}")
+
+            # print permutation p-values for the weighted test
+            if ("pval_perm" in results) and (printPerms==True):
+                if "weighted" in results["pval_perm"]:
+                    print(f"Weighted permutation p-value: {formatfloat(results['pval_perm']['weighted']['pval'], decimal_places)}")
+
+        # print information about the weighted test results
+        if "max_type" in results["scanZ"]:
+            # check if results is a change-point or change-interval
+            # if tauhat is not in the dictonary return with message
+            point_or_interval = "neither"
+            if "tauhat" in results["scanZ"]["max_type"]:
+               point_or_interval = "interval" if (np.asarray(results["scanZ"]["max_type"]["tauhat"]).size)>1 else "point" 
+            else:
+                print(f"\n\nNO ESTIMATED CHANGEPOINT FOR MAX-TYPE TEST")
+                return
+
+            print(f"\n\nMAX-TYPE TEST RESULTS")
+            print(f"---------------------")
+            # print estimated change-points/change-intervals if requested
+            if ("tauhat" in results["scanZ"]["max_type"]) and (printEsts==True) and (point_or_interval=="point"):
+                print(f"Estimated change-{point_or_interval} index (i): {results['scanZ']['max_type']['tauhat']}")
+                print(f"Estimated change-{point_or_interval} time (t): {results['scanZ']['max_type']['tauhat']+1}")
+            elif ("tauhat" in results["scanZ"]["max_type"]) and (printEsts==True) and (point_or_interval=="interval"):
+                print(f"Estimated change-{point_or_interval} indices (i, j): {results['scanZ']['max_type']['tauhat']}")
+                print(f"Estimated change-{point_or_interval} times (t1, t2): {results['scanZ']['max_type']['tauhat']+1}")
+
+            # print the maximum scan statistic for the max_type test
+            if ("Zmax" in results["scanZ"]["max_type"]) and (printScans==True):
+                print(f"Maximum max-type scan statistic: {formatfloat(results['scanZ']['max_type']['Zmax'], decimal_places)}")
+
+            # print asymptotic p-value for the max_type test
+            if ("pval_asym" in results) and (printAsyms==True):
+                if ("no_skew" in results["pval_asym"]):
+                    if "max_type" in results["pval_asym"]["no_skew"]:
+                        print(f"Max-type asymptotic p-value, no skew correction: {formatfloat(results['pval_asym']['no_skew']['max_type'], decimal_places)}")
+                        
+                if ("skew" in results["pval_asym"]):
+                    if "max_type" in results["pval_asym"]["skew"]:
+                        print(f"Max-type asymptotic p-value, with skew correction: {formatfloat(results['pval_asym']['skew']['max_type'], decimal_places)}")
+
+            # print permutation p-values for the max_type test
+            if ("pval_perm" in results) and (printPerms==True):
+                if "max_type" in results["pval_perm"]:
+                    print(f"Max-type permutation p-value: {formatfloat(results['pval_perm']['max_type']['pval'], decimal_places)}")
+
+        # print information about the weighted test results
+        if "generalized" in results["scanZ"]:
+            # check if results is a change-point or change-interval
+            # if tauhat is not in the dictonary return with message
+            point_or_interval = "neither"
+            if "tauhat" in results["scanZ"]["generalized"]:
+               point_or_interval = "interval" if (np.asarray(results["scanZ"]["generalized"]["tauhat"]).size)>1 else "point" 
+            else:
+                print(f"\n\nNO ESTIMATED CHANGEPOINT FOR GENERALIZED TEST")
+                return
+
+            print(f"\n\nGENERALIZED TEST RESULTS")
+            print(f"------------------------")
+            # print estimated change-points/change-intervals if requested
+            if ("tauhat" in results["scanZ"]["generalized"]) and (printEsts==True) and (point_or_interval=="point"):
+                print(f"Estimated change-{point_or_interval} index (i): {results['scanZ']['generalized']['tauhat']}")
+                print(f"Estimated change-{point_or_interval} time (t): {results['scanZ']['generalized']['tauhat']+1}")
+            elif ("tauhat" in results["scanZ"]["generalized"]) and (printEsts==True) and (point_or_interval=="interval"):
+                print(f"Estimated change-{point_or_interval} indices (i, j): {results['scanZ']['generalized']['tauhat']}")
+                print(f"Estimated change-{point_or_interval} times (t1, t2): {results['scanZ']['generalized']['tauhat']+1}")
+
+            # print the maximum scan statistic for the generalized test
+            if ("Zmax" in results["scanZ"]["generalized"]) and (printScans==True):
+                print(f"Maximum generalized scan statistic: {formatfloat(results['scanZ']['generalized']['Zmax'], decimal_places)}")
+
+            # print asymptotic p-value for the generalized test
+            if ("pval_asym" in results) and (printAsyms==True):
+                if ("no_skew" in results["pval_asym"]):
+                    if "generalized" in results["pval_asym"]["no_skew"]:
+                        print(f"Generalized asymptotic p-value, no skew correction: {formatfloat(results['pval_asym']['no_skew']['generalized'], decimal_places)}")
+                        
+                if ("skew" in results["pval_asym"]):
+                    if "generalized" in results["pval_asym"]["skew"]:
+                        print(f"Generalized asymptotic p-value, with skew correction: {formatfloat(results['pval_asym']['skew']['generalized'], decimal_places)}")
+
+            # print permutation p-values for the generalized test
+            if ("pval_perm" in results) and (printPerms==True):
+                if "generalized" in results["pval_perm"]:
+                    print(f"Generalized permutation p-value: {formatfloat(results['pval_perm']['generalized']['pval'], decimal_places)}")
+
+# ╔═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+# ║ CO_PLOT() METADATA                                                                                                  ║
+# ╠═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
+# ║ Function    : co_plot                                                                                               ║
+# ║ Purpose     : calls co_plot_test_statistic to plot a line graph (for gchangepoint results) or heatmap and surface   ║
+# ║               plot (for gchangeinterval results) of the Z test statistics. no plotting is done in this function, it ║
+# ║               just dispatches the co_plot_test_statistic function. the resulting plots will NOT be interactive. it  ║
+# ║               uses matplotlib for static plots. the plots for each test in the results['scanZ'] dictionary will be  ║
+# ║               drawn                                                                                                 ║
+# ║ Arguments   :                                                                                                       ║
+# ║    - results (dictionary) : the dictionary returned from either gchangepoint or gchangeinterval. this must have the ║
+# ║                             'scanZ' key containing the test statistics for each performed test                      ║
+# ║ Returns     : nothing                                                                                               ║
+# ║ Author      : written by Alex Wold                                                                                  ║
+# ╚═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+def co_plot(results):
+    if "original" in results["scanZ"]:
+        orowdim = results["scanZ"]["original"]["Z"].shape[0]
+        originalZ = results["scanZ"]["original"]["Z"].reshape((orowdim, -1))
+        co_plot_test_statistic(originalZ, r"$Z$", "Original")
+    if "weighted" in results["scanZ"]:
+        wrowdim = results["scanZ"]["weighted"]["Zw"].shape[0]
+        weightedZ = results["scanZ"]["weighted"]["Zw"].reshape((wrowdim, -1))
+        co_plot_test_statistic(weightedZ, r"$Z_{w}$", "Weighted")
+    if "max_type" in results["scanZ"]:
+        mrowdim = results["scanZ"]["max_type"]["M"].shape[0]
+        max_typeZ = results["scanZ"]["max_type"]["M"].reshape((mrowdim, -1))
+        co_plot_test_statistic(max_typeZ, r"$M$", "Max-type")
+    if "generalized" in results["scanZ"]:
+        growdim = results["scanZ"]["generalized"]["S"].shape[0]
+        generalizedZ = results["scanZ"]["generalized"]["S"].reshape((growdim, -1))
+        co_plot_test_statistic(generalizedZ, r"$S$", "Generalized")
+
+# ╔═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+# ║ CO_PLOT_TEST_STATISTIC() METADATA                                                                                   ║
+# ╠═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
+# ║ Function    : co_plot_test_statistic                                                                                ║
+# ║ Purpose     : uses matplotlib to plot the test statistics of gchangepoint or gchangeinterval results                ║
+# ║                  - draws a static line plot for the single change-point setting (gchangepoint results)              ║
+# ║                  - draws a static heatmap and surface plot for the change-interval setting (gchangeinterval         ║
+# ║                    results                                                                                          ║
+# ║ Arguments   :                                                                                                       ║
+# ║    - dimarray (ndarray shape: (N, 1) or (N, N)) : the (N, 1) array or the (N, N) matrix of test statistics to plot  ║
+# ║    - testtype (string, raw string literal)      : the raw string literal representing what test statistic to plot   ║
+# ║                                                      - r"$Z$" for the original test statistic                       ║
+# ║                                                      - r"$Z_{w}$" for the weighted test statistic                   ║
+# ║                                                      - r"$M$" for the max-type test statistic                       ║
+# ║                                                      - r"$S$" for the generalized test statistic                    ║
+# ║                                                    this argument is mostly used for figure/axis/legend titles       ║
+# ║    - testname (string)                          : the string value representing the name of the test. is one of:    ║
+# ║                                                      - "Original"                                                   ║
+# ║                                                      - "Weighted"                                                   ║
+# ║                                                      - "Max-type"                                                   ║
+# ║                                                      - "Generalized"                                                ║
+# ║                                                   this argument is mostly used for figure/axis/legend titles        ║
+# ║ Returns     : nothing: this function only draws plots                                                               ║
+# ║ Author      : translated from the gSeg R package by Alex Wold                                                       ║
+# ╚═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+def co_plot_test_statistic(dimarray, testtype, testname):
+    dimarray = np.nan_to_num(dimarray, nan=0, posinf=0, neginf=0)
+    stripped_type = testtype[1:-1] # strip out the $ characters
+    if dimarray.shape[1] == 1:
+        indices = np.arange(dimarray.shape[0])
+        maxTSindex = dimarray.argmax() # TS stands for test statistic, get the index of the maximum test statistic
+        maxTS = dimarray[maxTSindex] # get the maximum test statistic value
+        fig, vax = plt.subplots()
+        fig.suptitle(testname)
+        vax.plot(indices, dimarray, color="blue", label=testtype, zorder=-1)
+        vax.scatter((maxTSindex), maxTS, marker="o", color="red", alpha=1, zorder=1)
+        vax.vlines((dimarray.argmax()), ymin=0, ymax=1, linestyles="dotted", color="red", transform=vax.get_xaxis_transform(),
+                  label=(r"max " + testtype + r" index: " + str(maxTSindex)))
+        plt.xlabel(r"$\text{obs index: } \left( i \right)$")
+        plt.ylabel(r"$\text{test statistic: } \left(" + stripped_type + r"\right)$")
+        plt.legend()
+        plt.show()
+    if dimarray.shape[1] > 1:
+        # transpose so t2 (interval endpoint) is on the y-axis
+        dimarray = np.transpose(dimarray)
+
+        # mask the invalid lower triangle
+        masked = np.ma.masked_where(np.triu(np.ones_like(dimarray)), dimarray)
+
+        # get the indices of the maximum test statistic
+        maxTSindices = np.unravel_index(dimarray.argmax(), dimarray.shape)
+
+        # plot the 2D heatmap
+        fig = plt.figure(figsize=(12, 5))
+        fig.suptitle(testname)
+        ax1 = fig.add_subplot(1, 2, 1)
+        im = ax1.imshow(masked, origin="lower")
+        cbar = fig.colorbar(im, ax=ax1, orientation="vertical", label=r"test statistic: " + testtype)
+        ax1.scatter(maxTSindices[1], maxTSindices[0], marker=".", color="red", alpha=1)
+        ax1.vlines(maxTSindices[1], ymin=0, ymax=1, linestyles="dotted", color="red", transform=ax1.get_xaxis_transform(),
+                   label=r"max " + testtype + r" start index: $i=$" + str(maxTSindices[1]))
+        ax1.hlines(maxTSindices[0], xmin=0, xmax=1, linestyles="dotted", color="red", transform=ax1.get_yaxis_transform(),
+                   label=r"max " + testtype + r" end index: $j=$" + str(maxTSindices[0]))
+        ax1.set_xlabel(r"interval start index: $i$")
+        ax1.set_ylabel(r"interval end index: $j$")
+        ax1.legend(loc="lower right")
+
+        # plot the 3D contour plot
+        ax2 = fig.add_subplot(1, 2, 2, projection="3d")
+        rows, cols = dimarray.shape # cols refers to x-coordinate, rows refers to y coordinates
+        X, Y = np.meshgrid(np.arange(cols), np.arange(rows))
+        surf = ax2.plot_surface(X, Y, masked, cmap=cm.viridis, vmin=np.min(dimarray), vmax=np.max(dimarray))
+        cbar2 = ax2.figure.colorbar(surf, ax=ax2, orientation="vertical", label=r"test statistic: " + testtype)
+        max_zval = np.max(np.abs(dimarray))
+        ax2.set(xlim=(0, cols), ylim=(0, rows), zlim=(-max_zval, max_zval))
+        ax2.contourf(X[0, :], Y[:, 0], masked, zdir="z", offset=-max_zval, cmap=cm.viridis, alpha=.4)
+        ax2.scatter(maxTSindices[1], maxTSindices[0], masked[maxTSindices[0], maxTSindices[1]], marker="o", color="red")
+        max_x = maxTSindices[1]
+        max_y = maxTSindices[0]
+        ax2.scatter(max_x, max_y, -max_zval, color="red", marker="o")
+        ax2.plot([max_x, max_x], [max_y, max_y], [-max_zval, max_zval], linestyle="dotted", color="red") # vertical
+        ax2.plot([max_x, max_x], [0, (dimarray.shape[1]-1)], [-max_zval, -max_zval], linestyle="dotted", color="red") # t1
+        ax2.plot([0, (dimarray.shape[0]-1)], [max_y, max_y], [-max_zval, -max_zval], linestyle="dotted", color="red") # t2
+
+        # set axis labels
+        ax2.set_xlabel(r"interval start index: $i$") # X axis: interval start index (i)
+        ax2.set_ylabel(r"interval end index: $j$") # Y axis: interval end index (j)
+        ax2.set_zlabel("test statistic") # Z axis: 
+        ax2.view_init(elev=30, azim=-90.5, roll=0)
+    
+        plt.tight_layout()
+        plt.show()
+
+# ╔═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+# ║ CO_PLOT_INTERACTIVE() METADATA                                                                                      ║
+# ╠═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
+# ║ Function    : co_plot_interactive                                                                                   ║
+# ║ Purpose     : calls co_plot_test_statistic_interactive to plot a line graph (for gchangepoint results) or heatmap   ║
+# ║               and surface plot (for gchangeinterval results) of the Z test statistics. no plotting is done in this  ║
+# ║               function, it just dispatches the co_plot_test_statistic_interactive function. the resulting plots ARE ║
+# ║               interactive (built from plotly) and are meant to be used in an interactive notebook setting or within ║
+# ║               standalone html contexts. the plots for each test in the results['scanZ'] dictionary will be drawn.   ║
+# ║ Arguments   :                                                                                                       ║
+# ║    - results (dictionary) : the dictionary returned from either gchangepoint or gchangeinterval. this must have the ║
+# ║                             'scanZ' key containing the test statistics for each performed test                      ║
+# ║ Returns     : nothing                                                                                               ║
+# ║ Author      : written by Alex Wold                                                                                  ║
+# ╚═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+def co_plot_interactive(results):
+    if "original" in results["scanZ"]:
+        orowdim = results["scanZ"]["original"]["Z"].shape[0]
+        originalZ = results["scanZ"]["original"]["Z"].reshape((orowdim, -1))
+        co_plot_test_statistic_interactive(originalZ, r"$Z$", r"Original")
+    if "weighted" in results["scanZ"]:
+        wrowdim = results["scanZ"]["weighted"]["Zw"].shape[0]
+        weightedZ = results["scanZ"]["weighted"]["Zw"].reshape((wrowdim, -1))
+        co_plot_test_statistic_interactive(weightedZ, r"$Z_{w}$", r"Weighted")
+    if "max_type" in results["scanZ"]:
+        mrowdim = results["scanZ"]["max_type"]["M"].shape[0]
+        max_typeZ = results["scanZ"]["max_type"]["M"].reshape((mrowdim, -1))
+        co_plot_test_statistic_interactive(max_typeZ, r"$M$", r"Max-type")
+    if "generalized" in results["scanZ"]:
+        growdim = results["scanZ"]["generalized"]["S"].shape[0]
+        generalizedZ = results["scanZ"]["generalized"]["S"].reshape((growdim, -1))
+        co_plot_test_statistic_interactive(generalizedZ, r"$S$", r"Generalized")
+
+# ╔═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+# ║ CO_PLOT_TEST_STATISTIC_INTERACTIVE() METADATA                                                                       ║
+# ╠═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
+# ║ Function    : co_plot_test_statistic_interactive                                                                    ║
+# ║ Purpose     : uses plotly to plot the test statistics of gchangepoint or gchangeinterval results                    ║
+# ║                  - draws an interactive line plot for the single change-point setting (gchangepoint results)        ║
+# ║                  - draws an interactive heatmap and surface plot for the change-interval setting (gchangeinterval   ║
+# ║                    results)                                                                                         ║
+# ║ Arguments   :                                                                                                       ║
+# ║    - dimarray (ndarray shape: (N, 1) or (N, N)) : the (N, 1) array or the (N, N) matrix of test statistics to plot  ║
+# ║    - testtype (string, raw string literal)      : the raw string literal representing what test statistic to plot   ║
+# ║                                                      - r"$Z$" for the original test statistic                       ║
+# ║                                                      - r"$Z_{w}$" for the weighted test statistic                   ║
+# ║                                                      - r"$M$" for the max-type test statistic                       ║
+# ║                                                      - r"$S$" for the generalized test statistic                    ║
+# ║                                                    this argument is mostly used for figure/axis/legend titles       ║
+# ║    - testname (string)                          : the string value representing the name of the test. is one of:    ║
+# ║                                                      - "Original"                                                   ║
+# ║                                                      - "Weighted"                                                   ║
+# ║                                                      - "Max-type"                                                   ║
+# ║                                                      - "Generalized"                                                ║
+# ║                                                   this argument is mostly used for figure/axis/legend titles        ║
+# ║ Returns     : nothing: this function only draws plots                                                               ║
+# ║ Author      : translated from the gSeg R package by Alex Wold                                                       ║
+# ╚═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+def co_plot_test_statistic_interactive(dimarray, testtype, testname):
+    dimarray = np.nan_to_num(dimarray, nan=0, posinf=0, neginf=0)
+    stripped_type = testtype[1:-1] # strip out the $ characters
+    
+    if dimarray.shape[1] == 1:
+        # get axis of observation indices (0 to N-1)
+        indices = np.arange(dimarray.shape[0])
+
+        # get the index and value of the maximum test statistic
+        maxTSindex = dimarray.argmax()
+        maxTS = dimarray[maxTSindex]
+        
+        # create a 1D line plot with a marker at the maximum
+        fig = go.Figure()
+
+        # line plot of test statistic vs observation index
+        fig.add_trace(
+            go.Scatter(
+                x=indices,
+                y=dimarray[:, 0],
+                mode="lines",
+                name=testtype,
+                line=dict(color="blue")
+            )
+        )
+
+        # line marking index of the maximum test statistic
+        fig.add_shape(
+            type="line",
+            x0=maxTSindex, x1=maxTSindex,
+            y0=0, y1=1, # yref="paper", so y0=0 and y1=1 means span entire plot height
+            xref="x",
+            yref="paper",
+            line=dict(color="red", dash="dash", width=2)
+        )
+
+        # marker at the maximum test statistic
+        fig.add_trace(
+            go.Scatter(
+                x=[float(maxTSindex)],
+                y=[float(maxTS[0])],
+                mode="markers",
+                name=r"$\text{max } " + stripped_type + r"$",
+                marker=dict(color="red", size=10)
+            )
+        )
+
+        # plot information: title, axis, legend, etc
+        fig.update_layout(
+            title=testname,
+            xaxis_title=r"$\text{obs index: } \left(i\right)$",
+            yaxis_title=r"$\text{test statistic: } \left(" + stripped_type + r"\right)$",
+            legend=dict(
+                x=.98,
+                y=.98,
+                xanchor="right",
+                yanchor="top",
+                bgcolor="rgba(255,255,255,0.7)",   # semi-transparent white background
+                bordercolor="black",
+                borderwidth=1)
+        )
+        
+        fig.show()
+
+    if dimarray.shape[1] > 1:
+        # Transpose so t2 is on the y-axis
+        dimarray = np.transpose(dimarray)
+        rows, cols = dimarray.shape # cols refers to the x-coordinates, rows refers to the y-coordinates
+        
+        # mask the invalid lower triangle
+        # np.ones_like returns a matrix of all ones the size of dimarray
+        # then np.triu returns only the upper triangle of this
+        # np.where uses this as a condition to set the lower triangle to nan, and the upper triangle to dimarray
+        masked = np.where(np.triu(np.ones_like(dimarray)), np.nan, dimarray)
+        
+        # find the maximum test statistic
+        maxTSindices = np.unravel_index(dimarray.argmax(), dimarray.shape)
+        max_x = maxTSindices[1]
+        max_y = maxTSindices[0]
+        zmax = np.max(dimarray)
+        zmin = np.min(dimarray)
+        z_floor = np.full_like(dimarray, zmin)
+        z_floor[np.isnan(masked)] = np.nan
+        rows, cols = dimarray.shape # rows are y-coordinates, cols are x-coordinates
+        # meshrid used for plotting 3d surface
+        X, Y = np.meshgrid(np.arange(cols), np.arange(rows))
+
+        # create subplots: 1 row, 2 columns: (1, 1) is heatmap, (1, 2) is surface plot
+        fig = psub.make_subplots(
+            rows=1,
+            cols=2,
+            specs=[[{"type": "heatmap"}, {"type": "surface"}]]
+        )
+        
+        # heatmap
+        fig.add_trace(
+            go.Heatmap(
+                z=masked,
+                x=np.arange(cols),
+                y=np.arange(rows),
+                colorscale="Viridis",
+                showscale=False,
+                name="contour"
+            ),
+            row=1,
+            col=1
+        )
+
+        # add red line for max start index (vertical line) to heatmap
+        fig.add_shape(
+            type="line",
+            x0=max_x, x1=max_x,
+            y0=0, y1=1, # yref="paper", so y0=0 and y1=1 means span entire plot height
+            xref="x",
+            yref="paper",
+            line=dict(color="red", dash="dash", width=2),
+            name="start index"
+        )
+
+        # add red line for max end index (horizontal line) to heatmap
+        fig.add_shape(
+            type="line",
+            x0=0, x1=(cols-1),
+            y0=max_y, y1=max_y,
+            xref="x",
+            yref="y",
+            line=dict(color="red", dash="dash", width=2),
+            name="end index"
+        )
+        
+        # red marker on heatmap
+        fig.add_trace(
+            go.Scatter(
+                x=[max_x],
+                y=[max_y],
+                mode="markers",
+                marker=dict(color="red", size=10),
+                name="max test statistic",
+                showlegend=False
+            ),
+            row=1,
+            col=1
+        )
+
+        # change axis limits for heatmap
+        colorbar=dict(showticklabels=False, showcolorbar=False)
+        fig.update_xaxes(constrain='range', range=[0, (cols-1)], row=1, col=1, autorange=False,
+                         title=r"$\text{interval start index: } i$")
+        fig.update_yaxes(constrain='range', range=[0, (rows-1)], row=1, col=1, autorange=False,
+                         title=r"$\text{interval end index: } j$")
+        
+        # surface plot
+        fig.add_trace(
+            go.Surface(
+                z=masked,
+                x=np.arange(cols),
+                y=np.arange(rows),
+                colorscale="Viridis",
+                colorbar=dict(title="test statistic"),
+                showscale=True,
+                name="surface"
+            ),
+            row=1,
+            col=2
+        )
+
+        # add filled contour plot to floor of surface plot
+        fig.add_trace(
+            go.Surface(
+                z=z_floor,
+                x=X,
+                y=Y,
+                surfacecolor=masked,
+                colorscale="Viridis",
+                cmin=zmin,
+                cmax=zmax,
+                showscale=False,
+                opacity=.4,
+                name="contour"
+            ),
+            row=1,
+            col=2
+        )
+        
+        # red line for interval start index
+        fig.add_trace(
+            go.Scatter3d(
+                x=[max_x, max_x],
+                y=[0, (rows-1)],
+                z=[zmin, zmin],
+                mode="lines",
+                line=dict(
+                    color="red",
+                    width=5,
+                    dash="dash"
+                ),
+                showlegend=False,
+                name="start index"
+            ),
+            row=1,
+            col=2
+        )
+        
+        # red line for interval end index
+        fig.add_trace(
+            go.Scatter3d(
+                x=[0, (cols-1)],
+                y=[max_y, max_y],
+                z=[zmin, zmin],
+                mode="lines",
+                line=dict(
+                    color="red",
+                    width=5,
+                    dash="dash"
+                ),
+                showlegend=False,
+                name="end index"
+            ),
+            row=1,
+            col=2
+        )
+
+        # red vertical line up to max test statistic
+        fig.add_trace(
+            go.Scatter3d(
+                x=[max_x, max_x],
+                y=[max_y, max_y],
+                z=[zmin, zmax],
+                mode="lines",
+                line=dict(
+                    color="red",
+                    width=5,
+                    dash="dash"
+                ),
+                showlegend=False,
+                name="floor to max"
+            ),
+            row=1,
+            col=2
+        )
+
+        # marker at the maximum test statistic, duplicated on floor
+        fig.add_trace(
+            go.Scatter3d(
+                x=[max_x, max_x],
+                y=[max_y, max_y],
+                z=[zmin, zmax],
+                mode="markers",
+                marker=dict(color="red", size=5),
+                name="max test statistic",
+                showlegend=False
+            ),
+            row=1,
+            col=2
+        )
+        
+        # plot information: title, axis, legend, etc
+        fig.update_layout(
+            title_text=testname,
+            scene=dict(
+                xaxis_title=r"interval start index: i",
+                yaxis_title=r"interval end index: j",
+                zaxis_title="test statistic",
+                xaxis=dict(range=[0, (cols-1)]),
+                yaxis=dict(range=[0, (rows-1)]),
+                zaxis=dict(range=[zmin, zmax]),
+                aspectmode="cube"
+            ),
+            height=600,
+            width=1300,
+            scene_camera=dict(
+                eye=dict(
+                x=0.0188,
+                y=-2.165,
+                z=1.25
+                )
+            )
+        )
+
+        fig.show()
