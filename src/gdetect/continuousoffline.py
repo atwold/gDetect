@@ -14,6 +14,12 @@ from . import graphutilities as gu # use relative reference for an internal impo
 import numpy as np
 from scipy.stats import norm, chi2
 import scipy.integrate as integrate
+import matplotlib.pyplot as plt
+from matplotlib import cm
+import plotly.graph_objects as go
+import plotly.subplots as psub
+import plotly.io as pio
+pio.renderers.default = "notebook"
 
 
 
