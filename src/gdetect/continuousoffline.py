@@ -166,7 +166,7 @@ def rho_one_Rw(N, t):
 # ║ Author      : translated from the gSeg R package by Alex Wold                                                       ║
 # ╚═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 def gchangepoint(E, statistic={"all"}, n0=None, n1=None, pval_asym=True, skew_corr=True, pval_perm=0):
-    N = (E.shape)[0]
+    N = np.int64((E.shape)[0])
     
     # define default values for n0 and n1
     if n0 is None: n0 = (.05*N)-1
@@ -753,7 +753,7 @@ def permpval1(N, ebynode, scanZ, statistic={"all"}, n0=None, n1=None, B=100):
 # ║ Author      : translated from the gSeg R package by Alex Wold                                                       ║
 # ╚═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 def gchangeinterval(E, statistic={"all"}, l0=None, l1=None, pval_asym=True, skew_corr=True, pval_perm=0):
-    N = (E.shape)[0]
+    N = np.int64((E.shape)[0])
 
     # define default values for l0 and l1
     if l0 is None: l0 = .05*N
