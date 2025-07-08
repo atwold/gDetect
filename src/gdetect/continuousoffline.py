@@ -14,12 +14,18 @@ from . import graphutilities as gu # use relative reference for an internal impo
 import numpy as np
 from scipy.stats import norm, chi2
 import scipy.integrate as integrate
+import warnings
+from scipy.integrate import IntegrationWarning
 import matplotlib.pyplot as plt
 from matplotlib import cm
 import plotly.graph_objects as go
 import plotly.subplots as psub
 import plotly.io as pio
+from plotly.colors import sample_colorscale
 pio.renderers.default = "notebook"
+
+# suppress all IntegrationWarnings in this module
+warnings.filterwarnings("ignore", category=IntegrationWarning)
 
 
 
@@ -74,6 +80,10 @@ def Nu(x):
 # ╚═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 # finite sample version of h0, the autocorrelation between the scan statistics time series
 def rho_one(N, s, sumE, sumEisq):
+    N = np.float64(N)
+    s = np.float64(s)
+    sumE = np.float64(sumE)
+    sumEisq = np.float64(sumEisq)
     np.seterr(divide="ignore", invalid="ignore", over="ignore") # ignore floating-point errors
     f1 = 4*(N-1)*(2*s*(N-s)-N)
     f2 = ((N+1)*(N-2*s)**2-2*N*(N-1))
@@ -96,6 +106,8 @@ def rho_one(N, s, sumE, sumEisq):
 # ║ Author      : translated from the gSeg R package by Alex Wold                                                       ║
 # ╚═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 def rho_one_Rw(N, t):
+    N = np.float64(N)
+    t = np.float64(t)
     np.seterr(divide="ignore", invalid="ignore", over="ignore") # ignore floating-point errors
     return -((2*t**2-2*N*t+N)*(N**2-3*N+2)**4)/(2*t*(N-1)**3*(N-2)**4*(t-1)*(N**2-2*N*t-N+t**2+t))
 
@@ -166,7 +178,7 @@ def rho_one_Rw(N, t):
 # ║ Author      : translated from the gSeg R package by Alex Wold                                                       ║
 # ╚═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 def gchangepoint(E, statistic={"all"}, n0=None, n1=None, pval_asym=True, skew_corr=True, pval_perm=0):
-    N = np.int64((E.shape)[0])
+    N = np.float64((E.shape)[0])
     
     # define default values for n0 and n1
     if n0 is None: n0 = (.05*N)-1
@@ -205,6 +217,8 @@ def gchangepoint(E, statistic={"all"}, n0=None, n1=None, pval_asym=True, skew_co
     pval_perm = round(pval_perm)
     if pval_perm > 0:
         r1["pval_perm"] = permpval1(N, ebynode, r1["scanZ"], statistic, n0, n1, pval_perm)
+
+    r1["meta"] = {"type" : "point", "start" : n0, "end" : n1}
     
     return r1
 
@@ -232,8 +246,8 @@ def changepoint(N, ebynode, statistic={"all"}, n0=None, n1=None):
     # these don't depend on the samples or alternative
     # attribute 1: calculated the degree of each node
     # denoted as the absolute value of G_{i}: |G_{i}|
-    node_deg = np.zeros(N)
-    for i in np.arange(N):
+    node_deg = np.zeros(np.int64(N), dtype=np.int64)
+    for i in np.arange(np.int64(N), dtype=np.int64):
         node_deg[i] = (ebynode[i]).size
 
     # attribute 2: the summation of the degrees squared
@@ -245,13 +259,13 @@ def changepoint(N, ebynode, statistic={"all"}, n0=None, n1=None):
     edgenum = ((node_deg).sum())/2
 
     # calculate specific graph-based statistics
-    g = np.ones(N) 
-    R = np.zeros(N) # the number of between sample edges
-    R1 = np.zeros(N) # the number of within-sample 1 edges
-    R2 = np.zeros(N) # the number of within-sample 2 edges
+    g = np.ones(np.int64(N), dtype=np.int64) 
+    R = np.zeros(np.int64(N), dtype=np.int64) # the number of between sample edges
+    R1 = np.zeros(np.int64(N), dtype=np.int64) # the number of within-sample 1 edges
+    R2 = np.zeros(np.int64(N), dtype=np.int64) # the number of within-sample 2 edges
 
     # calculate R, R1, and R2 for every time point 1 through N (indexed by 0 through N-1)
-    for i in np.arange((N-1)):
+    for i in np.arange(np.int64((N-1)), dtype=np.int64):
         g[i] = 0
         links = ebynode[i]
         if i == 0:
@@ -274,8 +288,8 @@ def changepoint(N, ebynode, statistic={"all"}, n0=None, n1=None):
 
     # calculate the mean and standard deviation for each time point 1 through N
     # tt is a sequence from 1 through N (represents each time point, not index)
-    tt = np.arange(1, (N+1))
-    temp = np.arange(n0, (n1+1))
+    tt = np.arange(1, (N+1), dtype=np.float64)
+    temp = np.arange(n0, (n1+1), dtype=np.int64) # array of possible change-points
     scanZ = {}
     if gu.anyin({"all", "original", "ori", "o"}, statistic):
         mu_t = edgenum*2*tt*(N-tt)/(N*(N-1))
@@ -287,7 +301,7 @@ def changepoint(N, ebynode, statistic={"all"}, n0=None, n1=None):
         # we reject for unusually small values of R, so if R is smaller than expected (mu_t), then -R-mu_t/sqrt(var(R)) becomes large and positive
         # we reject for large values of Z, so we put a negative in front of R which motivates (mu_t-R) instead of (R-mu_t)
         Z = (mu_t-R)/np.sqrt(A_tt-mu_t**2)
-        Z[(N-1)] = 0
+        Z[np.int64((N-1))] = 0
         # estimate tauhat, the index of the changepoint, to be the time point where the maximum original scan statistic occurs
         tauhat = temp[(Z[n0:(n1+1)]).argmax()]
         scanZ["original"] = {"tauhat" : tauhat, "Zmax" : Z[tauhat], "Z" : Z, "R" : R}
@@ -307,7 +321,7 @@ def changepoint(N, ebynode, statistic={"all"}, n0=None, n1=None):
         var_Rw = ((N-tt-1)/(N-2))**2*v11+2*((N-tt-1)/(N-2))*((tt-1)/(N-2))*v12+((tt-1)/(N-2))**2*v22
         # standardize Rw
         # Zw is the weighted scan statistic
-        Zw = -(mu_Rw-Rw)/np.sqrt(np.stack((var_Rw, np.zeros(N)), axis=1).max(axis=1))
+        Zw = -(mu_Rw-Rw)/np.sqrt(np.stack((var_Rw, np.zeros(np.int64(N))), axis=1).max(axis=1))
 
         if gu.anyin({"all", "weighted", "wei", "w"}, statistic):
             # estimate tauhat, the index of the changepoint, to be the time point where the maximum weighted scan statistic occurs
@@ -318,7 +332,7 @@ def changepoint(N, ebynode, statistic={"all"}, n0=None, n1=None):
             # Rd is the difference between R1 and R2
             Rd = R1-R2
             # Zd is the difference scan statistic
-            Zd = (Rd-(mu_R1-mu_R2))/np.sqrt(np.stack(((v11+v22-2*v12), np.zeros(N)), axis=1).max(axis=1))
+            Zd = (Rd-(mu_R1-mu_R2))/np.sqrt(np.stack(((v11+v22-2*v12), np.zeros(np.int64(N))), axis=1).max(axis=1))
 
             if gu.anyin({"all", "max", "m"}, statistic):
                 # M is the max-type scan statistic
@@ -355,8 +369,8 @@ def pval1(N, edgelist, ebynode, scanZ, statistic={"all"}, n0=None, n1=None, skew
     lower = n0+1
     upper = n1+1
     output = {}
-    deg = np.zeros(N, dtype=np.int64)
-    for i in np.arange(N):
+    deg = np.zeros(np.int64(N), dtype=np.int64)
+    for i in np.arange(np.int64(N), dtype=np.int64):
         deg[i] = ((ebynode[i]).size)
     sumE = ((deg).sum())/2
     sumEisq = ((deg**2).sum())
@@ -431,14 +445,14 @@ def pval1(N, edgelist, ebynode, scanZ, statistic={"all"}, n0=None, n1=None, skew
         if gu.anyin({"all", "original", "ori", "o"}, statistic):
             b = scanZ["original"]["Zmax"]
             if b > 0:
-                s = np.arange(1, (N+1))
+                s = np.arange(1, (N+1), dtype=np.float64)
                 x = rho_one(N, s, sumE, sumEisq)
                 p1 = 2*s*(N-s)/(N*(N-1))
                 p2 = 4*s*(s-1)*(N-s)*(N-s-1)/(N*(N-1)*(N-2)*(N-3))
                 p3 = s*(N-s)*((N-s-1)*(N-s-2)+(s-1)*(s-2))/(N*(N-1)*(N-2)*(N-3))
                 p4 = 8*s*(s-1)*(s-2)*(N-s)*(N-s-1)*(N-s-2)/(N*(N-1)*(N-2)*(N-3)*(N-4)*(N-5))
                 mu = p1*sumE
-                sig = np.sqrt(((np.stack(((p2*sumE+(p1/2-p2)*sumEisq+(p2-p1**2)*sumE**2), (np.zeros(N))), axis=1)).max(axis=1)))
+                sig = np.sqrt(((np.stack(((p2*sumE+(p1/2-p2)*sumEisq+(p2-p1**2)*sumE**2), (np.zeros(np.int64(N)))), axis=1)).max(axis=1)))
                 ER3 = p1*sumE+p1/2*3*x1+p2*(3*sumE*(sumE-1)-3*x1)+p3*x2+p2/2*(3*x4-6*x3)+p4*(sumE*(sumE-1)*(sumE-2)- \
                       x2-3*x4+6*x3)-2*p4*x5
                 r = (mu**3+3*mu*sig**2-ER3)/sig**3
@@ -505,7 +519,7 @@ def pval1(N, edgelist, ebynode, scanZ, statistic={"all"}, n0=None, n1=None, skew
                 p = -1
                 mu = sumE*(q*t*(t-1)+p*(N-t)*(N-t-1))/(N*(N-1))
                 sig1 = q**2*r1+2*q*p*r12+p**2*r2-mu**2
-                sig = np.sqrt(((np.stack(((sig1), (np.zeros((N-1)))), axis=1)).max(axis=1)))
+                sig = np.sqrt(((np.stack(((sig1), (np.zeros(np.int64((N-1))))), axis=1)).max(axis=1)))
                 ER3 = q**3*A1+3*q**2*p*B1+3*q*p**2*C1+p**3*D1
                 r = (ER3-3*mu*sig**2-mu**3)/sig**3
                 result_u1 = pval1_sub1(N, b, r, x, n0, n1) # p-value for Zdiff
@@ -538,7 +552,7 @@ def pval1_sub0(N, b, r, x, n0, n1):
     np.seterr(divide="ignore", invalid="ignore", over="ignore")
     lower = n0+1
     upper = n1+1
-    theta_b = np.zeros(N)
+    theta_b = np.zeros(np.int64(N), dtype=np.float64)
     pos = (np.where((1+2*r*b)>0))[0]
     theta_b[pos] = (np.sqrt((1+2*r*b)[pos])-1)/r[pos]
     ratio = (np.exp((b-theta_b)**2/2+r*theta_b**3/6))/(np.sqrt(1+r*theta_b))
@@ -555,7 +569,7 @@ def pval1_sub0(N, b, r, x, n0, n1):
         id3 = id2+np.int64(np.ceil(.09*N))
         inc = (a[id3]-a[id2])/(id3-id2)
         a[id2::-1] = a[(id2+1)]-inc*(np.arange(1, (id2+2)))
-        a[np.int64(N/2):N] = a[np.int64(N/2-1*(N%2==0))::-1]
+        a[np.int64(N/2):np.int64(N)] = a[np.int64(N/2-1*(N%2==0))::-1]
         a[a<0] = 0
     
     def integrand(s):
@@ -588,13 +602,13 @@ def pval1_sub1(N, b, r, x, n0, n1):
         return 1
     lower = n0+1
     upper = n1+1
-    theta_b = np.zeros((N-1))
+    theta_b = np.zeros(np.int64((N-1)))
     pos = (np.where((1+2*r*b)>0))[0]
     theta_b[pos] = np.nan_to_num(((np.sqrt((1+2*r*b)[pos])-1)/r[pos]), nan=0, posinf=0, neginf=0)
     ratio = (np.exp((b-theta_b)**2/2+r*theta_b**3/6))/(np.sqrt(1+r*theta_b))
     a = x*Nu(np.sqrt(2*b**2*x))*ratio
     nn_l = np.ceil(N/2)-(((np.where((1+2*r[:np.int64(np.ceil(N/2))]*b)>0))[0]).size)
-    nn_r = np.ceil(N/2)-(((np.where((1+2*r[np.int64(np.ceil(N/2-1)):(N-1)]*b)>0))[0]).size)
+    nn_r = np.ceil(N/2)-(((np.where((1+2*r[np.int64(np.ceil(N/2-1)):np.int64((N-1))]*b)>0))[0]).size)
     if (nn_l > .35*N) or (nn_r > .35*N):
         return 0
     if (nn_l >= lower):
@@ -645,7 +659,7 @@ def pval1_sub2(N, b, r, x, n0, n1):
         return 0
     lower = n0+1
     upper = n1+1
-    theta_b = np.zeros((N-1))
+    theta_b = np.zeros(np.int64((N-1)), dtype=np.float64)
     pos = (np.where((1+2*r*b)>0))[0]
     theta_b[pos] = (np.sqrt((1+2*r*b)[pos])-1)/r[pos]
     ratio = (np.exp((b-theta_b)**2/2+r*theta_b**3/6))/(np.sqrt(1+r*theta_b))
@@ -691,17 +705,17 @@ def pval1_sub2(N, b, r, x, n0, n1):
 # ╚═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 # p-value from permutation for single change point
 def permpval1(N, ebynode, scanZ, statistic={"all"}, n0=None, n1=None, B=100):
-    Z_ori = np.zeros((B, N))
-    Z_wei = np.zeros((B, N))
-    Z_max = np.zeros((B, N))
-    Z_gen = np.zeros((B, N))
+    Z_ori = np.zeros((B, np.int64(N)))
+    Z_wei = np.zeros((B, np.int64(N)))
+    Z_max = np.zeros((B, np.int64(N)))
+    Z_gen = np.zeros((B, np.int64(N)))
     for b in np.arange(B):
-        perm = np.random.choice(N, size=N, replace=False)
-        permmatch = np.zeros(N, dtype=np.int64)
-        for i in np.arange(N):
+        perm = np.random.choice(np.int64(N), size=np.int64(N), replace=False)
+        permmatch = np.zeros(np.int64(N), dtype=np.int64)
+        for i in np.arange(np.int64(N), dtype=np.int64):
             permmatch[perm[i]] = i
-        ebnstar = [[] for _ in np.arange(N)]
-        for i in np.arange(N):
+        ebnstar = [[] for _ in np.arange(np.int64(N), dtype=np.int64)]
+        for i in np.arange(np.int64(N), dtype=np.int64):
             oldlinks = ebynode[permmatch[i]]
             ebnstar[i] = perm[oldlinks]
         gcpstar = changepoint(N, ebnstar, statistic, n0, n1)
@@ -753,7 +767,7 @@ def permpval1(N, ebynode, scanZ, statistic={"all"}, n0=None, n1=None, B=100):
 # ║ Author      : translated from the gSeg R package by Alex Wold                                                       ║
 # ╚═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 def gchangeinterval(E, statistic={"all"}, l0=None, l1=None, pval_asym=True, skew_corr=True, pval_perm=0):
-    N = np.int64((E.shape)[0])
+    N = np.float64((E.shape)[0])
 
     # define default values for l0 and l1
     if l0 is None: l0 = .05*N
@@ -781,6 +795,8 @@ def gchangeinterval(E, statistic={"all"}, l0=None, l1=None, pval_asym=True, skew
     pval_perm = round(pval_perm)
     if pval_perm > 0:
         r1["pval_perm"] = permpval2(N, ebynode, r1["scanZ"], statistic, l0, l1, pval_perm)
+
+    r1["meta"] = {"type" : "interval", "start" : l0, "end" : l1}
         
     return r1
 
@@ -798,19 +814,19 @@ def gchangeinterval(E, statistic={"all"}, l0=None, l1=None, pval_asym=True, skew
 # ╚═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 def changeinterval(N, ebynode, statistic, l0, l1):
     np.seterr(divide="ignore", invalid="ignore", over="ignore")
-    node_deg = np.zeros(N)
-    for i in np.arange(N):
+    node_deg = np.zeros(np.int64(N), dtype=np.int64)
+    for i in np.arange(np.int64(N), dtype=np.int64):
         node_deg[i] = ((ebynode[i]).size)
     sumEisq = ((node_deg**2).sum())
     edgenum = ((node_deg).sum())/2
-    Rtmp = np.zeros((N, N))
-    R1 = np.zeros((N, N))
-    R2 = np.zeros((N, N))
-    Rw = np.zeros((N, N))
+    Rtmp = np.zeros((np.int64(N), np.int64(N)))
+    R1 = np.zeros((np.int64(N), np.int64(N)))
+    R2 = np.zeros((np.int64(N), np.int64(N)))
+    Rw = np.zeros((np.int64(N), np.int64(N)))
 
-    for i in np.arange((N-1)):
-        g = np.zeros(N)
-        for j in np.arange((i+1), N):
+    for i in np.arange(np.int64((N-1)), dtype=np.int64):
+        g = np.zeros(np.int64(N), dtype=np.int64)
+        for j in np.arange(np.int64((i+1)), np.int64(N), dtype=np.int64):
             g[j] = 1
             links = ebynode[j]
             if j == (i+1):
@@ -829,9 +845,9 @@ def changeinterval(N, ebynode, statistic, l0, l1):
                     R1[i, j] = R1[i, (j-1)]
             R2[i, j] = edgenum-Rtmp[i, j]-R1[i, j]
             Rw[i, j] = ((N-j+i-1)/(N-2))*R1[i, j]+(j-i-1)/(N-2)*R2[i, j]
-    dif = np.zeros((N, N), dtype=np.int64)
-    for i in np.arange(N):
-        for j in np.arange(N):
+    dif = np.zeros((np.int64(N), np.int64(N)), dtype=np.int64)
+    for i in np.arange(np.int64(N), dtype=np.int64):
+        for j in np.arange(np.int64(N), dtype=np.int64):
             dif[i, j] = j-i
     difv = (dif.flatten())
     ids = (np.where(difv>0))[0]
@@ -839,16 +855,16 @@ def changeinterval(N, ebynode, statistic, l0, l1):
     
     scanZ = {}
     if gu.anyin({"all", "original", "ori", "o"}, statistic):
-        tt = np.arange(1, (N+1))
+        tt = np.arange(1, (N+1), dtype=np.float64)
         mu_t = edgenum*2*tt*(N-tt)/(N*(N-1))
         p1_tt = 2*tt*(N-tt)/(N*(N-1))
         p2_tt = 4*tt*(N-tt)*(tt-1)*(N-tt-1)/(N*(N-1)*(N-2)*(N-3))
         V_tt = p2_tt*edgenum+(p1_tt/2-p2_tt)*sumEisq+(p2_tt-p1_tt**2)*edgenum**2
         Rv = (Rtmp.flatten())
-        Zv = np.zeros(N*N)
+        Zv = np.zeros(np.int64((N*N)))
         Zv[ids] = (mu_t[(difv[ids]-1)]-Rv[ids])/(np.sqrt(V_tt[(difv[ids]-1)]))
         Zmax = ((Zv[ids2]).max())
-        Z = Zv.reshape((N, N))
+        Z = Zv.reshape((np.int64(N), np.int64(N)))
         tauhat = np.concatenate(np.where(Z==Zmax))
         scanZ["original"] = {"tauhat" : tauhat, "Zmax" : Zmax, "Z" : Z, "R" : Rtmp, "Zv" : Zv}
         
@@ -869,11 +885,11 @@ def changeinterval(N, ebynode, statistic, l0, l1):
         muRw_tt=q*mu_r1+p*mu_r2
         sigRw=q**2*sig11+p**2*sig22+2*p*q*sig12
         Rw_v = (Rw.flatten())
-        Zwv = np.zeros(N*N)
+        Zwv = np.zeros(np.int64((N*N)))
         Zwv[ids] = -(muRw_tt[(difv[ids]-1)]-Rw_v[ids])/(np.sqrt(sigRw[(difv[ids]-1)]))
         
         if gu.anyin({"all", "weighted", "wei", "w"}, statistic):
-            Zw = Zwv.reshape((N, N))
+            Zw = Zwv.reshape((np.int64(N), np.int64(N)))
             Zmax = ((Zwv[ids2]).max())
             tauhat = np.concatenate(np.where(Zw==Zmax))
             scanZ["weighted"] = {"tauhat" : tauhat, "Zmax" : Zmax, "Zw" : Zw, "Rw" : Rw_v, "Zwv" : Zwv}
@@ -883,22 +899,22 @@ def changeinterval(N, ebynode, statistic, l0, l1):
             Rsub_v = (Rsub.flatten())
             mu1_tt = (mu_r1-mu_r2)
             sig1 = sig11+sig22-2*sig12
-            Zv1 = np.zeros(N*N)
+            Zv1 = np.zeros(np.int64((N*N)))
             Zv1[ids] = -(mu1_tt[(difv[ids]-1)]-Rsub_v[ids])/(np.sqrt(sig1[(difv[ids]-1)]))
             
             if gu.anyin({"all", "max", "m"}, statistic):
-                Mv = np.zeros(N*N)
+                Mv = np.zeros(np.int64((N*N)))
                 Mv[ids] = ((np.stack((np.abs(Zv1[ids]), Zwv[ids]), axis=1)).max(axis=1))
                 Zmax = ((Mv[ids2]).max())
-                M = Mv.reshape((N, N))
+                M = Mv.reshape((np.int64(N), np.int64(N)))
                 tauhat = np.concatenate(np.where(M==Zmax))
                 scanZ["max_type"] = {"tauhat" : tauhat, "Zmax" : Zmax, "M" : M, "Mv" : Mv}
                 
             if gu.anyin({"all", "generalized", "gen", "g"}, statistic):
-                Sv = np.zeros(N*N)
+                Sv = np.zeros(np.int64((N*N)))
                 Sv[ids] = (Zv1[ids])**2+(Zwv[ids])**2
                 Zmax = ((Sv[ids2]).max())
-                S = Sv.reshape((N, N))
+                S = Sv.reshape((np.int64(N), np.int64(N)))
                 tauhat = np.concatenate(np.where(S==Zmax))
                 scanZ["generalized"] = {"tauhat" : tauhat, "Zmax" : Zmax, "S" : S, "Sv" : Sv}
                 
@@ -919,8 +935,8 @@ def changeinterval(N, ebynode, statistic, l0, l1):
 def pval2(N, edgelist, ebynode, scanZ, statistic, l0, l1, skew_corr):
     np.seterr(divide="ignore", invalid="ignore", over="ignore")
     output = {}
-    deg = np.zeros(N, dtype=np.int64)
-    for i in np.arange(N):
+    deg = np.zeros(np.int64(N), dtype=np.int64)
+    for i in np.arange(np.int64(N), dtype=np.int64):
         deg[i] = ((ebynode[i]).size)
     sumE = ((deg).sum())/2
     sumEisq = ((deg**2).sum())
@@ -994,7 +1010,7 @@ def pval2(N, edgelist, ebynode, scanZ, statistic, l0, l1, skew_corr):
         if gu.anyin({"all", "original", "ori", "o"}, statistic):
             b = scanZ["original"]["Zmax"]
             if b > 0:
-                s = np.arange(1, (N+1))
+                s = np.arange(1, (N+1), dtype=np.float64)
                 x = rho_one(N, s, sumE, sumEisq)
                 p1 = 2*s*(N-s)/(N*(N-1))
                 p2 = 4*s*(s-1)*(N-s)*(N-s-1)/(N*(N-1)*(N-2)*(N-3))
@@ -1058,13 +1074,13 @@ def pval2(N, edgelist, ebynode, scanZ, statistic, l0, l1, skew_corr):
                 
             if gu.anyin({"all", "max", "m"}, statistic):
                 b = scanZ["max_type"]["Zmax"]
-                t = np.arange(1, N)
+                t = np.arange(1, N, dtype=np.float64)
                 x = N/(2*t*(N-t))
                 q = 1
                 p = -1
                 mu = sumE*(q*t*(t-1)+p*(N-t)*(N-t-1))/(N*(N-1))
                 sig1 = q**2*r1+2*q*p*r12+p**2*r2-mu**2
-                sig = np.sqrt((np.stack((sig1, np.zeros((N-1))), axis=1).max(axis=1))) # sigma
+                sig = np.sqrt((np.stack((sig1, np.zeros(np.int64((N-1)))), axis=1).max(axis=1))) # sigma
                 ER3 = q**3*A1+3*q**2*p*B1+3*q*p**2*C1+p**3*D1
                 r = (ER3-3*mu*sig**2-mu**3)/sig**3
                 result_u1 = pval2_sub1(N, b, r, x, l0, l1)
@@ -1094,7 +1110,7 @@ def pval2(N, edgelist, ebynode, scanZ, statistic, l0, l1, skew_corr):
 # ╚═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 def pval2_sub0(N, b, r, x, l0, l1):
     np.seterr(divide="ignore", invalid="ignore", over="ignore")
-    theta_b = np.zeros(N)
+    theta_b = np.zeros(np.int64(N), dtype=np.float64)
     pos = (np.where((1+2*r*b)>0))[0]
     theta_b[pos] = (np.sqrt((1+2*r*b)[pos])-1)/(r[pos])
     ratio = (np.exp((b-theta_b)**2/2+r*theta_b**3/6))/(np.sqrt(1+r*theta_b))
@@ -1111,7 +1127,7 @@ def pval2_sub0(N, b, r, x, l0, l1):
         id3 = id2+np.int64(np.ceil(.09*N))
         inc = (a[id3]-a[id2])/(id3-id2)
         a[id2::-1] = a[(id2+1)]-inc*(np.arange(1, (id2+2)))
-        a[np.int64(N/2):N] = a[np.int64(N/2-1*(N%2==0))::-1]
+        a[np.int64(N/2):np.int64(N)] = a[np.int64(N/2-1*(N%2==0))::-1]
         a[a<0] = 0
 
     def integrand(s):
@@ -1141,13 +1157,13 @@ def pval2_sub1(N, b, r, x, l0, l1):
     np.seterr(divide="ignore", invalid="ignore", over="ignore")
     if b < 0:
         return 1
-    theta_b = np.zeros((N-1))
+    theta_b = np.zeros(np.int64((N-1)), dtype=np.float64)
     pos = (np.where((1+2*r*b)>0))[0]
     theta_b[pos] = np.nan_to_num(((np.sqrt((1+2*r*b)[pos])-1)/(r[pos])), nan=0, posinf=0, neginf=0)
     ratio = (np.exp((b-theta_b)**2/2+r*theta_b**3/6))/(np.sqrt(1+r*theta_b))
     a = (((b**2*x*Nu(np.sqrt(2*b**2*x)))**2)*ratio)
     nn_l = np.ceil(N/2)-(((np.where((1+2*r[:np.int64(np.ceil(N/2))]*b)>0))[0]).size)
-    nn_r = np.ceil(N/2)-(((np.where((1+2*r[np.int64(np.ceil(N/2-1)):(N-1)]*b)>0))[0]).size)
+    nn_r = np.ceil(N/2)-(((np.where((1+2*r[np.int64(np.ceil(N/2-1)):np.int64((N-1))]*b)>0))[0]).size)
     if (nn_l > .35*N) or (nn_r > .35*N):
         return 0
     if nn_l >= l0:
@@ -1196,7 +1212,7 @@ def pval2_sub2(N, b, r, x, l0, l1):
     np.seterr(divide="ignore", invalid="ignore", over="ignore")
     if b < 0:
         return 1
-    theta_b = np.zeros((N-1))
+    theta_b = np.zeros(np.int64((N-1)))
     pos = (np.where((1+2*r*b)>0))[0]
     theta_b[pos] = (np.sqrt((1+2*r*b)[pos])-1)/(r[pos])
     ratio = (np.exp((b-theta_b)**2/2+r*theta_b**3/6))/(np.sqrt(1+r*theta_b))
@@ -1213,7 +1229,7 @@ def pval2_sub2(N, b, r, x, l0, l1):
         id3 = id2+np.int64(np.ceil(.09*N))
         inc = (a[id3]-a[id2])/(id3-id2)
         a[id2::-1] = a[(id2+1)]-inc*(np.arange(1, (id2+2)))
-        a[np.int64(N/2):N] = a[np.int64(N/2-1*(N%2==0))::-1]
+        a[np.int64(N/2):np.int64(N)] = a[np.int64(N/2-1*(N%2==0))::-1]
         a = np.nan_to_num(a, nan=0, posinf=0, neginf=0)
         a[a<0] = 0
         
@@ -1241,17 +1257,17 @@ def pval2_sub2(N, b, r, x, l0, l1):
 # ║ Author      : translated from the gSeg R package by Alex Wold                                                       ║
 # ╚═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 def permpval2(N, ebynode, scanZ, statistic, l0, l1, B):
-    Z_ori = np.zeros(B)
-    Z_wei = np.zeros(B)
-    Z_max = np.zeros(B)
-    Z_gen = np.zeros(B)
-    for b in np.arange(B):
-        perm = np.random.choice(N, size=N, replace=False)
-        permmatch = np.zeros(N, dtype=np.int64)
-        for i in np.arange(N):
+    Z_ori = np.zeros(np.int64(B), dtype=np.float64)
+    Z_wei = np.zeros(np.int64(B), dtype=np.float64)
+    Z_max = np.zeros(np.int64(B), dtype=np.float64)
+    Z_gen = np.zeros(np.int64(B), dtype=np.float64)
+    for b in np.arange(np.int64(B), dtype=np.int64):
+        perm = np.random.choice(np.int64(N), size=np.int64(N), replace=False)
+        permmatch = np.zeros(np.int64(N), dtype=np.int64)
+        for i in np.arange(np.int64(N), dtype=np.int64):
             permmatch[perm[i]] = i
-        ebnstar = [[] for _ in np.arange(N)]
-        for i in np.arange(N):
+        ebnstar = [[] for _ in np.arange(np.int64(N), dtype=np.int64)]
+        for i in np.arange(np.int64(N), dtype=np.int64):
             oldlinks = ebynode[permmatch[i]]
             ebnstar[i] = perm[oldlinks]
         gcpstar = changeinterval(N, ebnstar, statistic, l0, l1)
@@ -1265,7 +1281,7 @@ def permpval2(N, ebynode, scanZ, statistic, l0, l1, B):
             Z_gen[b] = gcpstar["generalized"]["Zmax"]
 
     output = {}
-    p = 1-(np.arange(B))/B
+    p = 1-(np.arange(np.float64(B), dtype=np.float64))/np.float64(B)
     if gu.anyin({"all", "original", "ori", "o"}, statistic):
         maxZ = ((Z_ori).max())
         maxZs = np.sort(Z_ori)
@@ -1330,13 +1346,11 @@ def co_print(results, printEsts=True, printScans=True, printAsyms=True, printPer
         if "original" in results["scanZ"]:
             # check if results is a change-point or change-interval
             # if tauhat is not in the dictonary return with message
-            point_or_interval = "neither"
-            if "tauhat" in results["scanZ"]["original"]:
-               point_or_interval = "interval" if (np.asarray(results["scanZ"]["original"]["tauhat"]).size)>1 else "point" 
-            else:
+            point_or_interval = results["meta"]["type"]
+            if "tauhat" not in results["scanZ"]["original"]:
                 print(f"NO ESTIMATED CHANGEPOINT FOR ORIGINAL TEST")
                 return
-
+                
             print(f"\n\nORIGINAL TEST RESULTS")
             print(f"---------------------")
             # print estimated change-points/change-intervals if requested
@@ -1371,10 +1385,8 @@ def co_print(results, printEsts=True, printScans=True, printAsyms=True, printPer
         if "weighted" in results["scanZ"]:
             # check if results is a change-point or change-interval
             # if tauhat is not in the dictonary return with message
-            point_or_interval = "neither"
-            if "tauhat" in results["scanZ"]["weighted"]:
-               point_or_interval = "interval" if (np.asarray(results["scanZ"]["weighted"]["tauhat"]).size)>1 else "point" 
-            else:
+            point_or_interval = results["meta"]["type"]
+            if "tauhat" not in results["scanZ"]["weighted"]:
                 print(f"\n\nNO ESTIMATED CHANGEPOINT FOR WEIGHTED TEST")
                 return
 
@@ -1411,12 +1423,10 @@ def co_print(results, printEsts=True, printScans=True, printAsyms=True, printPer
         if "max_type" in results["scanZ"]:
             # check if results is a change-point or change-interval
             # if tauhat is not in the dictonary return with message
-            point_or_interval = "neither"
-            if "tauhat" in results["scanZ"]["max_type"]:
-               point_or_interval = "interval" if (np.asarray(results["scanZ"]["max_type"]["tauhat"]).size)>1 else "point" 
-            else:
+            point_or_interval = results["meta"]["type"]
+            if "tauhat" not in results["scanZ"]["max_type"]:
                 print(f"\n\nNO ESTIMATED CHANGEPOINT FOR MAX-TYPE TEST")
-                return
+                return             
 
             print(f"\n\nMAX-TYPE TEST RESULTS")
             print(f"---------------------")
@@ -1451,10 +1461,8 @@ def co_print(results, printEsts=True, printScans=True, printAsyms=True, printPer
         if "generalized" in results["scanZ"]:
             # check if results is a change-point or change-interval
             # if tauhat is not in the dictonary return with message
-            point_or_interval = "neither"
-            if "tauhat" in results["scanZ"]["generalized"]:
-               point_or_interval = "interval" if (np.asarray(results["scanZ"]["generalized"]["tauhat"]).size)>1 else "point" 
-            else:
+            point_or_interval = results["meta"]["type"]
+            if "tauhat" not in results["scanZ"]["generalized"]:
                 print(f"\n\nNO ESTIMATED CHANGEPOINT FOR GENERALIZED TEST")
                 return
 
@@ -1503,22 +1511,26 @@ def co_print(results, printEsts=True, printScans=True, printAsyms=True, printPer
 # ║ Author      : written by Alex Wold                                                                                  ║
 # ╚═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 def co_plot(results):
+    point_or_interval = results["meta"]["type"]
+    start = results["meta"]["start"]
+    end = results["meta"]["end"]
+    
     if "original" in results["scanZ"]:
         orowdim = results["scanZ"]["original"]["Z"].shape[0]
         originalZ = results["scanZ"]["original"]["Z"].reshape((orowdim, -1))
-        co_plot_test_statistic(originalZ, r"$Z$", "Original")
+        co_plot_test_statistic(originalZ, r"$Z$", "Original", point_or_interval, start, end)
     if "weighted" in results["scanZ"]:
         wrowdim = results["scanZ"]["weighted"]["Zw"].shape[0]
         weightedZ = results["scanZ"]["weighted"]["Zw"].reshape((wrowdim, -1))
-        co_plot_test_statistic(weightedZ, r"$Z_{w}$", "Weighted")
+        co_plot_test_statistic(weightedZ, r"$Z_{w}$", "Weighted", point_or_interval, start, end)
     if "max_type" in results["scanZ"]:
         mrowdim = results["scanZ"]["max_type"]["M"].shape[0]
         max_typeZ = results["scanZ"]["max_type"]["M"].reshape((mrowdim, -1))
-        co_plot_test_statistic(max_typeZ, r"$M$", "Max-type")
+        co_plot_test_statistic(max_typeZ, r"$M$", "Max-type", point_or_interval, start, end)
     if "generalized" in results["scanZ"]:
         growdim = results["scanZ"]["generalized"]["S"].shape[0]
         generalizedZ = results["scanZ"]["generalized"]["S"].reshape((growdim, -1))
-        co_plot_test_statistic(generalizedZ, r"$S$", "Generalized")
+        co_plot_test_statistic(generalizedZ, r"$S$", "Generalized", point_or_interval, start, end)
 
 # ╔═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
 # ║ CO_PLOT_TEST_STATISTIC() METADATA                                                                                   ║
@@ -1545,32 +1557,43 @@ def co_plot(results):
 # ║ Returns     : nothing: this function only draws plots                                                               ║
 # ║ Author      : translated from the gSeg R package by Alex Wold                                                       ║
 # ╚═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
-def co_plot_test_statistic(dimarray, testtype, testname):
-    dimarray = np.nan_to_num(dimarray, nan=0, posinf=0, neginf=0)
+def co_plot_test_statistic(dimarray, testtype, testname, point_or_interval, start, end):
+    dimarray = np.nan_to_num(dimarray, nan=0, posinf=0, neginf=0) # remove nans and infs
     stripped_type = testtype[1:-1] # strip out the $ characters
-    if dimarray.shape[1] == 1:
-        indices = np.arange(dimarray.shape[0])
-        maxTSindex = dimarray.argmax() # TS stands for test statistic, get the index of the maximum test statistic
+    if point_or_interval == "point":
+        xaxis = np.arange(dimarray.shape[0]) # full x-axis (time from 0 to N)
+        xaxis_subset = xaxis[start:(end+1)] # absolute indices of the start/end portion of dimarray
+        maxTSindex = xaxis_subset[(dimarray[xaxis_subset]).argmax()] # TS stands for test statistic, get the absolute (not relative) index of the maximum test statistic
         maxTS = dimarray[maxTSindex] # get the maximum test statistic value
         fig, vax = plt.subplots()
         fig.suptitle(testname)
-        vax.plot(indices, dimarray, color="blue", label=testtype, zorder=-1)
+        vax.plot(xaxis_subset, dimarray[xaxis_subset], color="blue", label=testtype, zorder=-1)
         vax.scatter((maxTSindex), maxTS, marker="o", color="red", alpha=1, zorder=1)
-        vax.vlines((dimarray.argmax()), ymin=0, ymax=1, linestyles="dotted", color="red", transform=vax.get_xaxis_transform(),
+        vax.vlines((maxTSindex), ymin=0, ymax=1, linestyles="dotted", color="red", transform=vax.get_xaxis_transform(),
                   label=(r"max " + testtype + r" index: " + str(maxTSindex)))
+        vax.set_xlim(0, dimarray.shape[0])
         plt.xlabel(r"$\text{obs index: } \left( i \right)$")
         plt.ylabel(r"$\text{test statistic: } \left(" + stripped_type + r"\right)$")
         plt.legend()
         plt.show()
-    if dimarray.shape[1] > 1:
+    if point_or_interval == "interval":
         # transpose so t2 (interval endpoint) is on the y-axis
+        dimarray = (np.nan_to_num(dimarray, nan=0, posinf=0, neginf=0))
         dimarray = np.transpose(dimarray)
+        
+        t2, t1 = np.indices(dimarray.shape)
+        lengths = t2-t1+1
 
-        # mask the invalid lower triangle
-        masked = np.ma.masked_where(np.triu(np.ones_like(dimarray)), dimarray)
+        # build masks for invalid intervals
+        length_mask = (lengths<start) | (lengths>end) # intervals whose lengths are outside of l0 and l1
+        upper_triangle_mask = np.triu(np.ones_like(dimarray, dtype=bool)) # intervals where j>i
+        combined_mask = length_mask | upper_triangle_mask
+
+        # apply mask
+        masked = np.ma.masked_where(combined_mask, dimarray)
 
         # get the indices of the maximum test statistic
-        maxTSindices = np.unravel_index(dimarray.argmax(), dimarray.shape)
+        maxTSindices = np.unravel_index(np.ma.argmax(masked), masked.shape)
 
         # plot the 2D heatmap
         fig = plt.figure(figsize=(12, 5))
@@ -1629,22 +1652,26 @@ def co_plot_test_statistic(dimarray, testtype, testname):
 # ║ Author      : written by Alex Wold                                                                                  ║
 # ╚═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 def co_plot_interactive(results):
+    point_or_interval = results["meta"]["type"]
+    start = results["meta"]["start"]
+    end = results["meta"]["end"]
+    
     if "original" in results["scanZ"]:
         orowdim = results["scanZ"]["original"]["Z"].shape[0]
         originalZ = results["scanZ"]["original"]["Z"].reshape((orowdim, -1))
-        co_plot_test_statistic_interactive(originalZ, r"$Z$", r"Original")
+        co_plot_test_statistic_interactive(originalZ, r"$Z$", r"Original", point_or_interval, start, end)
     if "weighted" in results["scanZ"]:
         wrowdim = results["scanZ"]["weighted"]["Zw"].shape[0]
         weightedZ = results["scanZ"]["weighted"]["Zw"].reshape((wrowdim, -1))
-        co_plot_test_statistic_interactive(weightedZ, r"$Z_{w}$", r"Weighted")
+        co_plot_test_statistic_interactive(weightedZ, r"$Z_{w}$", r"Weighted", point_or_interval, start, end)
     if "max_type" in results["scanZ"]:
         mrowdim = results["scanZ"]["max_type"]["M"].shape[0]
         max_typeZ = results["scanZ"]["max_type"]["M"].reshape((mrowdim, -1))
-        co_plot_test_statistic_interactive(max_typeZ, r"$M$", r"Max-type")
+        co_plot_test_statistic_interactive(max_typeZ, r"$M$", r"Max-type", point_or_interval, start, end)
     if "generalized" in results["scanZ"]:
         growdim = results["scanZ"]["generalized"]["S"].shape[0]
         generalizedZ = results["scanZ"]["generalized"]["S"].reshape((growdim, -1))
-        co_plot_test_statistic_interactive(generalizedZ, r"$S$", r"Generalized")
+        co_plot_test_statistic_interactive(generalizedZ, r"$S$", r"Generalized", point_or_interval, start, end)
 
 # ╔═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
 # ║ CO_PLOT_TEST_STATISTIC_INTERACTIVE() METADATA                                                                       ║
@@ -1671,16 +1698,17 @@ def co_plot_interactive(results):
 # ║ Returns     : nothing: this function only draws plots                                                               ║
 # ║ Author      : translated from the gSeg R package by Alex Wold                                                       ║
 # ╚═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
-def co_plot_test_statistic_interactive(dimarray, testtype, testname):
+def co_plot_test_statistic_interactive(dimarray, testtype, testname, point_or_interval, start, end):
     dimarray = np.nan_to_num(dimarray, nan=0, posinf=0, neginf=0)
     stripped_type = testtype[1:-1] # strip out the $ characters
     
-    if dimarray.shape[1] == 1:
+    if point_or_interval == "point":
         # get axis of observation indices (0 to N-1)
-        indices = np.arange(dimarray.shape[0])
+        xaxis = np.arange(dimarray.shape[0])
+        xaxis_subset = xaxis[start:(end+1)]
 
         # get the index and value of the maximum test statistic
-        maxTSindex = dimarray.argmax()
+        maxTSindex = xaxis_subset[((dimarray[xaxis_subset]).argmax())]
         maxTS = dimarray[maxTSindex]
         
         # create a 1D line plot with a marker at the maximum
@@ -1689,8 +1717,8 @@ def co_plot_test_statistic_interactive(dimarray, testtype, testname):
         # line plot of test statistic vs observation index
         fig.add_trace(
             go.Scatter(
-                x=indices,
-                y=dimarray[:, 0],
+                x=xaxis_subset,
+                y=dimarray[xaxis_subset, 0],
                 mode="lines",
                 name=testtype,
                 line=dict(color="blue")
@@ -1721,6 +1749,7 @@ def co_plot_test_statistic_interactive(dimarray, testtype, testname):
         # plot information: title, axis, legend, etc
         fig.update_layout(
             title=testname,
+            xaxis_range=[0, dimarray.shape[0]],
             xaxis_title=r"$\text{obs index: } \left(i\right)$",
             yaxis_title=r"$\text{test statistic: } \left(" + stripped_type + r"\right)$",
             legend=dict(
@@ -1735,8 +1764,8 @@ def co_plot_test_statistic_interactive(dimarray, testtype, testname):
         
         fig.show()
 
-    if dimarray.shape[1] > 1:
-        # Transpose so t2 is on the y-axis
+    if point_or_interval == "interval":
+        # transpose so t2 is on the y-axis
         dimarray = np.transpose(dimarray)
         rows, cols = dimarray.shape # cols refers to the x-coordinates, rows refers to the y-coordinates
         
@@ -1744,19 +1773,41 @@ def co_plot_test_statistic_interactive(dimarray, testtype, testname):
         # np.ones_like returns a matrix of all ones the size of dimarray
         # then np.triu returns only the upper triangle of this
         # np.where uses this as a condition to set the lower triangle to nan, and the upper triangle to dimarray
-        masked = np.where(np.triu(np.ones_like(dimarray)), np.nan, dimarray)
+        t2, t1 = np.indices(dimarray.shape)
+        lengths = t2-t1+1
+
+        # build masks for invalid intervals
+        length_mask = (lengths<start) | (lengths>end) # intervals whose lengths are outside of l0 and l1
+        upper_triangle_mask = np.triu(np.ones_like(dimarray, dtype=bool)) # intervals where j>i
+        combined_mask = length_mask | upper_triangle_mask
+
+        # apply mask
+        masked = np.ma.masked_where(combined_mask, dimarray)
+        z_plot = masked.filled(np.nan)
         
         # find the maximum test statistic
-        maxTSindices = np.unravel_index(dimarray.argmax(), dimarray.shape)
+        maxTSindices = np.unravel_index(np.ma.argmax(masked), masked.shape)
         max_x = maxTSindices[1]
         max_y = maxTSindices[0]
-        zmax = np.max(dimarray)
-        zmin = np.min(dimarray)
+        zmax = np.max(masked)
+        zmin = np.min(masked)
         z_floor = np.full_like(dimarray, zmin)
         z_floor[np.isnan(masked)] = np.nan
         rows, cols = dimarray.shape # rows are y-coordinates, cols are x-coordinates
         # meshrid used for plotting 3d surface
         X, Y = np.meshgrid(np.arange(cols), np.arange(rows))
+
+        # define transparent color for invalid intervals for floor contour plot
+        spec_val = -9999.0
+        z_masked_plot = np.where(np.isnan(z_plot), spec_val, z_plot) # for contour plot on floor
+        data_min = np.nanmin(z_plot)
+        data_max = np.nanmax(z_plot)
+        cmin = data_min
+        cmax = data_max
+        scaled_start = .01 # (data_min-cmin)/(cmax-cmin)
+        viridis = sample_colorscale("Viridis", [i/9 for i in range(10)], colortype="rgb")
+        colorscale = [[0.0, "rgba(0,0,0,0)"]]  # transparent for -9999
+        colorscale += [[scaled_start+(1-scaled_start)*(i/9), c] for i, c in enumerate(viridis)]
 
         # create subplots: 1 row, 2 columns: (1, 1) is heatmap, (1, 2) is surface plot
         fig = psub.make_subplots(
@@ -1768,7 +1819,7 @@ def co_plot_test_statistic_interactive(dimarray, testtype, testname):
         # heatmap
         fig.add_trace(
             go.Heatmap(
-                z=masked,
+                z=z_plot,
                 x=np.arange(cols),
                 y=np.arange(rows),
                 colorscale="Viridis",
@@ -1825,7 +1876,7 @@ def co_plot_test_statistic_interactive(dimarray, testtype, testname):
         # surface plot
         fig.add_trace(
             go.Surface(
-                z=masked,
+                z=z_plot,
                 x=np.arange(cols),
                 y=np.arange(rows),
                 colorscale="Viridis",
@@ -1843,12 +1894,12 @@ def co_plot_test_statistic_interactive(dimarray, testtype, testname):
                 z=z_floor,
                 x=X,
                 y=Y,
-                surfacecolor=masked,
-                colorscale="Viridis",
-                cmin=zmin,
-                cmax=zmax,
+                surfacecolor=z_masked_plot,
+                colorscale=colorscale,
+                cmin=cmin,
+                cmax=cmax,
                 showscale=False,
-                opacity=.4,
+                opacity=1,
                 name="contour"
             ),
             row=1,
