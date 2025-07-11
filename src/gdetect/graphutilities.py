@@ -665,7 +665,7 @@ def nnl(data_matrix=None, distance_matrix=None, k=5):
         return None
     distance_matrix_copy = np.copy(distance_matrix)
     maxdis = 1e5*np.max(distance_matrix_copy) # max distance
-    nodes = distance_matrix_copy.shape[0]
+    N = distance_matrix_copy.shape[0]
     tempE = [[] for _ in np.arange(k)]
     E = np.empty((0, 2), dtype=np.int64)
     for i in np.arange(k):
@@ -680,7 +680,7 @@ def nnl(data_matrix=None, distance_matrix=None, k=5):
             distance_matrix_copy[e1, e2] = distance_matrix_copy[e2, e1] = maxdis
     # return E
     # note that E is an edge list, not an edge matrix
-    return edgelist_to_edgematrix(E, nodes=nodes, directed=False)
+    return edgelist_to_edgematrix(E, N=N, directed=False)
 
 
 

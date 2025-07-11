@@ -10,12 +10,20 @@
 # ▌ █ IMPORTS, MODULES, AND PACKAGES █                                                                                  ▐
 # ▌ Purpose : imports the necessary modules and packages                                                                ▐
 # ▙▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▟
+# general imports
 from . import graphutilities as gu # use relative reference for an internal import
 import numpy as np
 from scipy.stats import norm, chi2
+
+# integration imports
 import scipy.integrate as integrate
 import warnings
 from scipy.integrate import IntegrationWarning
+
+# suppress all IntegrationWarnings in this module
+warnings.filterwarnings("ignore", category=IntegrationWarning)
+
+# printing and plotting imports
 import matplotlib.pyplot as plt
 from matplotlib import cm
 import plotly.graph_objects as go
@@ -23,9 +31,6 @@ import plotly.subplots as psub
 import plotly.io as pio
 from plotly.colors import sample_colorscale
 pio.renderers.default = "notebook"
-
-# suppress all IntegrationWarnings in this module
-warnings.filterwarnings("ignore", category=IntegrationWarning)
 
 
 
@@ -1899,7 +1904,7 @@ def co_plot_test_statistic_interactive(dimarray, testtype, testname, point_or_in
                 cmin=cmin,
                 cmax=cmax,
                 showscale=False,
-                opacity=1,
+                opacity=.4,
                 name="contour"
             ),
             row=1,
