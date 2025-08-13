@@ -251,7 +251,7 @@ def changepoint(N, ebynode, statistic={"all"}, n0=None, n1=None):
     # these don't depend on the samples or alternative
     # attribute 1: calculated the degree of each node
     # denoted as the absolute value of G_{i}: |G_{i}|
-    node_deg = np.zeros(np.int64(N), dtype=np.int64)
+    node_deg = np.zeros(np.int64(N), dtype=np.float64)
     for i in np.arange(np.int64(N), dtype=np.int64):
         node_deg[i] = (ebynode[i]).size
 
@@ -264,10 +264,10 @@ def changepoint(N, ebynode, statistic={"all"}, n0=None, n1=None):
     edgenum = ((node_deg).sum())/2
 
     # calculate specific graph-based statistics
-    g = np.ones(np.int64(N), dtype=np.int64) 
-    R = np.zeros(np.int64(N), dtype=np.int64) # the number of between sample edges
-    R1 = np.zeros(np.int64(N), dtype=np.int64) # the number of within-sample 1 edges
-    R2 = np.zeros(np.int64(N), dtype=np.int64) # the number of within-sample 2 edges
+    g = np.ones(np.int64(N), dtype=np.float64) 
+    R = np.zeros(np.int64(N), dtype=np.float64) # the number of between sample edges
+    R1 = np.zeros(np.int64(N), dtype=np.float64) # the number of within-sample 1 edges
+    R2 = np.zeros(np.int64(N), dtype=np.float64) # the number of within-sample 2 edges
 
     # calculate R, R1, and R2 for every time point 1 through N (indexed by 0 through N-1)
     for i in np.arange(np.int64((N-1)), dtype=np.int64):
@@ -710,11 +710,12 @@ def pval1_sub2(N, b, r, x, n0, n1):
 # ╚═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 # p-value from permutation for single change point
 def permpval1(N, ebynode, scanZ, statistic={"all"}, n0=None, n1=None, B=100):
-    Z_ori = np.zeros((B, np.int64(N)))
-    Z_wei = np.zeros((B, np.int64(N)))
-    Z_max = np.zeros((B, np.int64(N)))
-    Z_gen = np.zeros((B, np.int64(N)))
-    for b in np.arange(B):
+    B = np.float64(B)
+    Z_ori = np.zeros((np.int64(B), np.int64(N)), dtype=np.float64)
+    Z_wei = np.zeros((np.int64(B), np.int64(N)), dtype=np.float64)
+    Z_max = np.zeros((np.int64(B), np.int64(N)), dtype=np.float64)
+    Z_gen = np.zeros((np.int64(B), np.int64(N)), dtype=np.float64)
+    for b in np.arange(np.int64(B), dtype=np.int64):
         perm = np.random.choice(np.int64(N), size=np.int64(N), replace=False)
         permmatch = np.zeros(np.int64(N), dtype=np.int64)
         for i in np.arange(np.int64(N), dtype=np.int64):
