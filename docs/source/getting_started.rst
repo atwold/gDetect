@@ -9,7 +9,7 @@ You can install the development version (latest features but less stable) of `gD
 
 .. code-block:: bash
 
-    pip install git+https://github.com/atwold/gDetect.git
+    pip install git+https://github.com/GraphBasedChangepoint/gDetect.git
 
 ---------------------------------------------
 Basic Usage for the Continuous Online Setting
